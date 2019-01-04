@@ -1,34 +1,40 @@
-Hands-on lab (Second Part)
-================
-Sofia Gil
-December 17, 2018
+---
+title: "Hands-on lab (Second Part)"
+author: "Sofia Gil"
+date: "December 17, 2018"
+output: 
+  github_document:
+    toc: true
+    toc_depth: 2
+---
 
--   [1. First steps for parallelizing in R](#first-steps-for-parallelizing-in-r)
-    -   [The basics](#the-basics)
-    -   [Divide and Conquer - All Possible Regressions](#divide-and-conquer---all-possible-regressions)
--   [2. Submitting R scripts into the cluster](#submitting-r-scripts-into-the-cluster)
-    -   [The basics](#the-basics-1)
-    -   [How does the cluster work?](#how-does-the-cluster-work)
-    -   [Non-parallel jobs](#non-parallel-jobs)
-    -   [Parallel jobs](#parallel-jobs)
-    -   [Other important LSF commands](#other-important-lsf-commands)
--   [References](#references)
 
-1. First steps for parallelizing in R
-=====================================
 
-The basics
-----------
+```{r setup, echo = FALSE, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"#,
+  # fig.path = "fig/README-",
+  # echo = TRUE, fig.height = 1, fig.width = 6
+)
 
-It is well known that when we are using *R* we always have to avoid *f**o**r* loops. Due to the calls that *R* does to *C* functions, therefore it is better to vectorice everything.
+```
 
-``` r
+# 1. First steps for parallelizing in R
+
+```{r,echo=FALSE}
+library(ggplot2)
+```
+
+
+## The basics
+
+It is well known that when we are using $R$ we always have to avoid $for$ loops. Due to the calls that $R$ does to $C$ functions, therefore it is better to vectorice everything.
+
+```{r}
 
 rm(list=ls())
 gc()
-#>           used (Mb) gc trigger (Mb) max used (Mb)
-#> Ncells  625705 33.5    1207875 64.6  1207875 64.6
-#> Vcells 1137920  8.7    8388608 64.0  1662691 12.7
 
 len<-5000000
 
@@ -42,59 +48,43 @@ system.time({
     c1<-a[i]*b[i]+c1
   }
 })['elapsed']
-#> elapsed 
-#>    0.43
 
 system.time({c2<-a%*%b})['elapsed']
-#> elapsed 
-#>    0.03
+
 ```
 
 But... what should we do when the problem we are facing needs a loop? There are two options:
 
-1.  Write the loop and wait.(*Easy way*)
-2.  Paralellize. (*Fun way*)
+1. Write the loop and wait.(*Easy way*)
+2. Paralellize. (*Fun way*)
 
-Imagine we want to do the Kronecker Product of *A* ⊗ *B*, that means:
+Imagine we want to do the Kronecker Product of $A \otimes B$, that means:
 
-<img src="Github_files/figure-markdown_github/Kronecker.png" width="300" />
+![](Github_files/figure-markdown_github/Kronecker.png){width=300px}
 
 #### Easy way
 
-**Memory access:** It is important to know the way *R* stores matrices, i.e., by row or by column. In the specific case of *R* all the matrices are store by column, given that *R* is an statistical software where the columns almost always represent variable names. This is crucial due to each variable created in R has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that this addresses are consecutive, it will always decreases the memory access time if we call them in a consecutive way.
 
-<img src="Github_files/figure-markdown_github/ColumnOriented.png" width="300" />
+**Memory access:** It is important to know the way $R$ stores matrices, i.e., by row or by column. In the specific case of $R$ all the matrices are store by column, given that $R$ is an statistical software where the columns almost always represent variable names. This is crucial due to each variable created in R has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that this addresses are consecutive, it will always decreases the memory access time if we call them in a consecutive way. 
 
-``` r
+![](Github_files/figure-markdown_github/ColumnOriented.png){width=300px}
+
+```{r}
 
 (A<-matrix(runif(9),nrow = 3,ncol = 3))
-#>            [,1]       [,2]      [,3]
-#> [1,] 0.05884223 0.94374442 0.7751198
-#> [2,] 0.61457612 0.19139907 0.6573736
-#> [3,] 0.92257634 0.08701266 0.6559999
 
 for(i in 1:length(A))
   print(paste(i,A[i]))
-#> [1] "1 0.0588422324508429"
-#> [1] "2 0.614576119463891"
-#> [1] "3 0.922576343407854"
-#> [1] "4 0.943744422169402"
-#> [1] "5 0.191399068571627"
-#> [1] "6 0.0870126641821116"
-#> [1] "7 0.775119769386947"
-#> [1] "8 0.657373580848798"
-#> [1] "9 0.655999914743006"
+
 ```
+
 
 For solving with a loop this basic knowledge can help to increase the pace of the algorithm.
 
-``` r
+```{r}
 
 rm(list=ls())
 gc()
-#>           used (Mb) gc trigger  (Mb) max used (Mb)
-#> Ncells  627979 33.6    1207875  64.6  1207875 64.6
-#> Vcells 1144334  8.8   14905472 113.8 11281286 86.1
 
 row=100
 col=100
@@ -114,8 +104,6 @@ system.time({
     }
   }
 })['elapsed']
-#> elapsed 
-#>    4.79
 
 
 ### By column
@@ -126,48 +114,41 @@ system.time({
     }
   }
 })['elapsed']
-#> elapsed 
-#>    0.78
 
 sum(CC-CR)
-#> [1] 0
+
 ```
 
 #### Fun way
 
 There are several packages for parallelizing:
 
--   doParallel
--   Parallel
--   snow
--   multicore
+* doParallel
+* Parallel
+* snow
+* multicore
 
 Some of those packages are require by the others, so lets start with **doParallel**. Once we open this package in our session it will require **parallel** that will automatically open the rest.
 
 The easiest way to parallelize the loop above is using the package **foreach** in conjunction with **doParallel**. For this it's necessary to call the *registerParallel* function.
 
-``` r
+
+```{r}
 
 library(doParallel)
-#> Warning: package 'doParallel' was built under R version 3.5.2
-#> Loading required package: foreach
-#> Warning: package 'foreach' was built under R version 3.5.2
-#> Loading required package: iterators
-#> Warning: package 'iterators' was built under R version 3.5.2
-#> Loading required package: parallel
 
 (no_cores<-detectCores()-1)
-#> [1] 3
 
 registerDoParallel()
 
 getDoParWorkers()
-#> [1] 3
+
+
 ```
 
 Now we proceed to parallelize:
 
-``` r
+```{r}
 
 system.time({
   C<-foreach(A2=A,.combine = 'cbind',.packages = c('foreach'))%dopar%{
@@ -176,14 +157,14 @@ system.time({
         }
       }
 })['elapsed']
-#> elapsed 
-#>    4.12
 
 sum(CC-C)
-#> [1] 0
+
+
 ```
 
 Anytime we initialize the cores using **registerDoParallel** there is no need to close the connections, they will be stopped automatically once the program detects they aren't used anymore.
+
 
 ### Life is always a tradeoff
 
@@ -191,10 +172,10 @@ You might be wondering why we are not using more than 3 cores. Let's do it!
 
 First, we need to introduce some new functions:
 
--   **makeCluster**: this function will initialize all the cores or clusters that we require.
--   **stopCluster**: this function will stop and release the cores that we have initialized.
+* **makeCluster**: this function will initialize all the cores or clusters that we require.
+* **stopCluster**: this function will stop and release the cores that we have initialized.
 
-``` r
+```{r,eval=FALSE}
 
 Times<-rep(0,no_cores)
 
@@ -210,22 +191,41 @@ for(h in 1:no_cores){
   })['elapsed']
   stopCluster(cls)
 }
+
+
+
 ```
 
-<img src="Github_files/figure-markdown_github/Time_graph.png" width="500" />
+```{r,eval=FALSE,echo=FALSE}
 
-Given that we are sharing memory, i.e., in every iteration we are calling *B*, the way *R* in Windows handles this is making the different cores wait until the others finish using *B*. Therefore, more cores not always means less time.
+library(ggplot2)
 
-Divide and Conquer - All Possible Regressions
----------------------------------------------
+Times<-data.frame(Time=Times,ClusterSize=1:length(Times))
+
+ggplot(Times,aes(ClusterSize,Time))+geom_point()
+
+ggsave('Time_graph.png')
+
+```
+
+
+![](Github_files/figure-markdown_github/Time_graph.png){width=500px}
+
+Given that we are sharing memory, i.e., in every iteration we are calling $B$, the way $R$ in Windows handles this is making the different cores wait until the others finish using $B$. Therefore, more cores not always means less time.
+
+
+
+
+## Divide and Conquer - All Possible Regressions
 
 Now that we are almost masters of the paralelization it is time to handle more complicated problems. The next example was extracted from Matloff, 2015.
 
-Suppose we have *n* observations and *p* predictor variables, we are going to use *the all possible regressions* method for selecting the variables. Therefore, we need to fit regression models to each possible subset of the *p* predictors, and choose those that return the largest *R*<sup>2</sup>.
+Suppose we have $n$ observations and $p$ predictor variables, we are going to use *the all possible regressions* method for selecting the variables. Therefore, we need to fit regression models to each possible subset of the $p$ predictors, and choose those that return the largest $R^2$.
 
-There are 2<sup>*p*</sup> possible models, this means that we are dealing with the most exhaustive computer problem.
+There are $2^p$ possible models, this means that we are dealing with the most exhaustive computer problem.
 
-``` r
+
+```{r}
 
 # ---- General Functions ----
 # Generate all nonempty subsets of 1..p of size <=k; returns an R list,
@@ -247,9 +247,12 @@ matrixtolist<-function(rc,m){
     Map(function(colnum) m[,colnum], 1:ncol(m))
   }
 }
+
+
 ```
 
-``` r
+
+```{r}
 
 
 # ---- Parallel functions ----
@@ -295,9 +298,13 @@ do1pset<-function(onepset, x, y){
   n0s<-ncol(x)-length(onepset)
   c(slm$adj.r.squared, onepset, rep(0,n0s))
 }
+
+
+
 ```
 
-``` r
+
+```{r,eval=FALSE}
 
 # Applying Algorithm
 n=1000
@@ -318,23 +325,48 @@ for(i in 1:nrow(times)){
                                   reverse=FALSE,dyn=TRUE,chunksize=times$CHUNKsize[i])))['elapsed']
     stopCluster(cls)
 }
+
+
+
+
 ```
 
-|         |  CORES|  CHUNKsize|    TIME|
-|---------|------:|----------:|-------:|
-| Minimum |     18|         19|   0.173|
-| Maximum |      1|          1|  10.315|
+```{r, echo=FALSE}
+# Table<-data.frame(rbind(times[which.max(times$TIME),],times[which.min(times$TIME),]))
+# 
+# write.csv(Table,'TableDandC.csv',row.names = FALSE)
 
-<img src="Github_files/figure-markdown_github/TimesPlot.png" width="500" />
+Table<-read.csv('TableDandC.csv')
 
-2. Submitting R scripts into the cluster
-========================================
+Table2<-Table[c(which.min(Table$TIME),which.max(Table$TIME)),]
+
+rownames(Table2)<-c('Minimum','Maximum')
+
+knitr::kable(Table2)
+
+```
+
+
+```{r,eval=FALSE, echo=FALSE}
+
+# p<-ggplot(Table,aes(CHUNKsize,TIME,color=as.factor(CORES)))+
+#   geom_line()+geom_point()
+# 
+# ggsave('TimesPlot.png',p)
+
+```
+
+![](Github_files/figure-markdown_github/TimesPlot.png){width=500px}
+
+
+
+# 2. Submitting R scripts into the cluster
 
 From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the share variables.
 
 So, lets check what happens if instead of **makeCluster** we use **makeForkCluster** (attention, this function is only available for Linux) for the Kronecker product.
 
-``` r
+```{r,eval=FALSE}
 
 Times<-rep(0,no_cores)
 
@@ -350,14 +382,15 @@ for(h in 1:no_cores){
   })['elapsed']
   stopCluster(cls)
 }
+
+
 ```
 
-The basics
-----------
+## The basics
 
-First, open *R* in the terminal, install the packages and close *R*. When the packages are installed for the first time, it takes about 10 minutes to download everything.
+First, open $R$ in the terminal, install the packages and close $R$. When the packages are installed for the first time, it takes about 10 minutes to download everything.
 
-``` r
+```{r,eval=FALSE}
 
 > R
 
@@ -374,36 +407,40 @@ registerDoParallel()
 getDoParWorkers()
 
 q()
+
 ```
 
-For running and R code in terminal, without opening *R*, just write **Rscript** followed by the name of your *R* file.
+For running and R code in terminal, without opening $R$, just write **Rscript** followed by the name of your $R$ file.
 
-``` r
+
+```{r, eval=FALSE}
 
 > Rscript DivideAndConquer.R
+
 ```
 
-How does the cluster work?
---------------------------
+## How does the cluster work?
 
 For submitting jobs to the cluster it is necessary to create a **shell file** using a **batch system** through LSF commands. So, the GWDG cluster is operated by the LSF platform, which is operated by shell commands on the frontends. The **frontends** are special nodes (gwdu101, gwudu102, and gwdu103) provided to interact with the cluster via shell commands.
 
 The batch system distributes the processes across job slots, and matches the job's requirements to the capabilities of the job slots. Once sufficient suitable job slots are found, the job is started. LSF considers jobs to be started in the order of their priority.
 
+
 It is also necessary to know how the cluster is structured:
 
-<img src="Github_files/figure-markdown_github/GWDGarchitecture.PNG" alt="source: https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs" width="100%" />
-<p class="caption">
-source: <https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs>
-</p>
+
+```{r, out.width='100%', fig.align='right', fig.cap='source: https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs', echo=FALSE}
+knitr::include_graphics('Github_files/figure-markdown_github/GWDGarchitecture.PNG')
+```
+
 
 ### Basic options of **disk space**
 
--   /scratch: this is the shared scratch space, available on *gwda, gwdc*, and *gwdd* nodes and on the frontends *gwdu101* and *gwdu102*. For being sure of having a node with access to shared */scratch* the command **-R scratch** must be written in the shell file.
+* /scratch: this is the shared scratch space, available on *gwda, gwdc*, and *gwdd* nodes and on the frontends *gwdu101* and *gwdu102*. For being sure of having a node with access to shared */scratch* the command **-R scratch** must be written in the shell file.
 
--   /scratch2: this is the shared scratch space, available on *dfa, dsu, dge*, and *dmp* nodes, and on the frontend *gwdu103*. For being sure of having a node with access to shared */scratch2* the command **-R scratch2** must be written in the shell file.
+* /scratch2: this is the shared scratch space, available on *dfa, dsu, dge*, and *dmp* nodes, and on the frontend *gwdu103*. For being sure of having a node with access to shared */scratch2* the command **-R scratch2** must be written in the shell file.
 
--   $HOME: our home directory is available everywhere, permanent, and comes with backup, but it is comparatively slow.
+* $HOME: our home directory is available everywhere, permanent, and comes with backup, but it is comparatively slow.
 
 ### Basic queue *mpi*
 
@@ -411,42 +448,43 @@ source: <https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_servi
 
 Some extra parameters for this queue are:
 
--   -long: the maximum run time is increased to 120 hours. Job slot availability is limited, and long waiting times are expected.
+* -long: the maximum run time is increased to 120 hours. Job slot availability is limited, and long waiting times are expected.
 
--   -short: the maximum run time is decreased to two hours. In turn the queue has a higher base priority, but it also has limited job slot availability. That means that as long as only few jobs are submitted to the *-short* queues they will have minimal waiting times.
+* -short: the maximum run time is decreased to two hours. In turn the queue has a higher base priority, but it also has limited job slot availability. That means that as long as only few jobs are submitted to the *-short* queues they will have minimal waiting times.
 
 ### Specifying node properties with *-R*
 
 **-R** runs the job on a host that meets the specified resource requirements. Some of its basic parameters are:
 
--   span\[hosts=1\]: this puts all processes on one host.
--   span\[ptile=&lt; x &gt;\]: *x* denotes the exact number of job slots to be used on each host. If the total process number is not divisible by *x*.
--   scratch(2): the node must have access to *scratch(2)*.
+* span[hosts=1]: this puts all processes on one host.
+* span[ptile=< x >]: *x* denotes the exact number of job slots to be used on each host. If the total process number is not divisible by *x*.
+* scratch(2): the node must have access to *scratch(2)*.
 
 ### Last but not less important parameters
 
--   -N: sends the job report to you by email when the job finishes.
--   -u: sends the email to the specified email destination.
--   -W: sets the runtime limit of the job.
--   -o: appends the standard output of the job to the specified file path.
--   -n: submits a parallel job and specifies the number of tasks in the job.
--   -a: this option denotes a wrapper script required to run SMP or MPI jobs. The most important wrappers are[1]:
-    -   Shared Memory (**openmp**). This is a type of parallel job that runs multiple threads or processes on a single multi-core machine. OpenMP programs are a type of shared memory parallel program.
-    -   Distributed Memory (**intelmpi**). This type of parallel job runs multiple processes over multiple processors with communication between them. This can be on a single machine but is typically thought of as going across multiple machines. There are several methods of achieving this via a message passing protocol but the most common, by far, is MPI (Message Passing Interface).
-    -   Hybrid Shared/Distributed Memory (**openmpi**). This type of parallel job uses distributed memory parallelism across compute nodes, and shared memory parallelism within each compute node. There are several methods for achieving this but the most common is OpenMP/MPI.
+- -N: sends the job report to you by email when the job finishes.
+- -u: sends the email to the specified email destination.
+- -W: sets the runtime limit of the job.
+- -o: appends the standard output of the job to the specified file path.
+- -n: submits a parallel job and specifies the number of tasks in the job.
+- -a: this option denotes a wrapper script required to run SMP or MPI jobs. The most important wrappers are^[https://wiki.uiowa.edu/display/hpcdocs/Advanced+Job+Submission]:
+    - Shared Memory (**openmp**). This is a type of parallel job that runs multiple threads or processes on a single multi-core machine. OpenMP programs are a type of shared memory parallel program.
+    - Distributed Memory (**intelmpi**). This type of parallel job runs multiple processes over multiple processors with communication between them. This can be on a single machine but is typically thought of as going across multiple machines. There are several methods of achieving this via a message passing protocol but the most common, by far, is MPI (Message Passing Interface).
+    - Hybrid Shared/Distributed Memory (**openmpi**). This type of parallel job uses distributed memory parallelism across compute nodes, and shared memory parallelism within each compute node. There are several methods for achieving this but the most common is OpenMP/MPI.
+    
+
 
 ### The **bsub** command: Submitting jobs to the cluster
 
 **bsub** submits information regarding your job to the batch system. Instead of writing a large *bsub* command in the terminal, we will create a shell file specifying all the *bsub* requiremnts.
 
-The shell files can be created through either the linux terminal using the editor *nano* or Notepad++ in Windows.
+The shell files can be created through either the linux terminal using the editor *nano* or Notepad++ in Windows. 
 
-Non-parallel jobs
------------------
+## Non-parallel jobs
 
 For creating the shell file we will use the Linux text editor **nano**.
 
-``` r
+```{r, eval=FALSE}
 
 > nano NameShell.sh
 
@@ -460,18 +498,19 @@ For creating the shell file we will use the Linux text editor **nano**.
  
 R CMD BATCH NameCode.R
 --------------------------
+
 ```
 
 For submiting the job the command is:
 
-``` r
+```{r, eval=FALSE}
 > bsub < NameShell.sh
 ```
 
-Parallel jobs
--------------
 
-``` r
+## Parallel jobs
+
+```{r, eval=FALSE}
 
 > nano NameShell.sh
 
@@ -488,15 +527,17 @@ Parallel jobs
  
 R CMD BATCH NameCode.R
 --------------------------
+
 ```
 
-``` r
+
+```{r, eval=FALSE}
 > bsub < NameShell.sh
 ```
 
 So, for submiting our job the shell file would look like the next one:
 
-``` r
+```{r, eval=FALSE}
 
 > nano DivideAndConquer.sh
 
@@ -513,38 +554,44 @@ So, for submiting our job the shell file would look like the next one:
  
 R CMD BATCH DivideAndConquer.R
 --------------------------
+
 ```
 
-``` r
+
+```{r, eval=FALSE}
 > bsub < DivideAndConquer.sh
 ```
 
-<img src="Github_files/figure-markdown_github/Submit.PNG" width="800" />
+![](Github_files/figure-markdown_github/Submit.PNG){width=800px}
 
-Other important LSF commands
-----------------------------
 
--   bjobs: lists currents jobs.
+## Other important LSF commands
+
+* bjobs: lists currents jobs.
 
 While not having a job slot:
 
-<img src="Github_files/figure-markdown_github/WaitingHost.PNG" width="800" />
+![](Github_files/figure-markdown_github/WaitingHost.PNG){width=800px}
 
 Once having a job slot:
 
-<img src="Github_files/figure-markdown_github/QueueInHost.PNG" width="800" />
+![](Github_files/figure-markdown_github/QueueInHost.PNG){width=800px}
 
--   bhist: lists older jobs.
--   lsload: status of cluster nodes.
--   bqueues: status of cluster nodes.
--   bhpart: shows current user priorities.
--   bkill <jobid>: stops the current job.
 
-References
-==========
+* bhist: lists older jobs.
+* lsload: status of cluster nodes.
+* bqueues: status of cluster nodes.
+* bhpart: shows current user priorities.
+* bkill <jobid>: stops the current job.
 
-<img src="Github_files/figure-markdown_github/Book.jpg" width="200" />
 
-<https://info.gwdg.de/dokuwiki/lib/exe/fetch.php?media=en:services:scientific_compute_cluster:parallelkurs.pdf>
 
-[1] <https://wiki.uiowa.edu/display/hpcdocs/Advanced+Job+Submission>
+# References
+
+![](Github_files/figure-markdown_github/Book.jpg){width=200px}
+
+
+
+https://info.gwdg.de/dokuwiki/lib/exe/fetch.php?media=en:services:scientific_compute_cluster:parallelkurs.pdf
+
+
