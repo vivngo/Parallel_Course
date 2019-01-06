@@ -1,7 +1,7 @@
 Hands-on lab (Second Part)
 ================
 Sofia Gil
-December 17, 2018
+January 15, 2019
 
 -   [1. First steps for parallelizing in R](#first-steps-for-parallelizing-in-r)
     -   [The basics](#the-basics)
@@ -17,18 +17,20 @@ December 17, 2018
 1. First steps for parallelizing in R
 =====================================
 
+    #> Warning: package 'ggplot2' was built under R version 3.4.4
+
 The basics
 ----------
 
-It is well known that when we are using *R* we always have to avoid *f**o**r* loops. Due to the calls that *R* does to *C* functions, therefore it is better to vectorice everything.
+It is well known that when we are using *R* we always have to avoid *f**o**r* loops. Due to the calls that *R* does to *C* functions, therefore it is better to vectorize everything.
 
 ``` r
 
 rm(list=ls())
 gc()
-#>           used (Mb) gc trigger (Mb) max used (Mb)
-#> Ncells  625975 33.5    1207352 64.5  1207352 64.5
-#> Vcells 1138636  8.7    8388608 64.0  1664277 12.7
+#>          used (Mb) gc trigger (Mb) max used (Mb)
+#> Ncells 554386 29.7     940480 50.3   750400 40.1
+#> Vcells 945483  7.3    1650153 12.6  1210626  9.3
 
 len<-5000000
 
@@ -43,11 +45,11 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>    0.39
+#>    0.31
 
 system.time({c2<-a%*%b})['elapsed']
 #> elapsed 
-#>    0.02
+#>    0.06
 ```
 
 But... what should we do when the problem we are facing needs a loop? There are two options:
@@ -61,29 +63,29 @@ Imagine we want to do the Kronecker Product of *A* ⊗ *B*, that means:
 
 #### Easy way
 
-**Memory access:** It is important to know the way *R* stores matrices, i.e., by row or by column. In the specific case of *R* all the matrices are store by column, given that *R* is an statistical software where the columns almost always represent variable names. This is crucial due to each variable created in R has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that this addresses are consecutive, it will always decreases the memory access time if we call them in a consecutive way.
+**Memory access:** It is important to know the way *R* stores matrices, i.e., by row or by column. In the specific case of *R* all the matrices are stored by column, given that *R* is a statistical software where the columns almost always represent variable names. This is crucial since each variable created in R has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that these addresses are consecutive, it will always decreases the memory access time if we call them in a consecutive way.
 
 <img src="Github_files/figure-markdown_github/ColumnOriented.png" width="300" />
 
 ``` r
 
 (A<-matrix(runif(9),nrow = 3,ncol = 3))
-#>           [,1]       [,2]      [,3]
-#> [1,] 0.4734223 0.52886657 0.1720439
-#> [2,] 0.1350168 0.72337145 0.7221741
-#> [3,] 0.2189953 0.07391578 0.8314777
+#>            [,1]      [,2]      [,3]
+#> [1,] 0.12055291 0.9398870 0.6852757
+#> [2,] 0.06930082 0.6605580 0.7476069
+#> [3,] 0.96107983 0.1323794 0.2771891
 
 for(i in 1:length(A))
   print(paste(i,A[i]))
-#> [1] "1 0.47342227678746"
-#> [1] "2 0.135016770102084"
-#> [1] "3 0.218995268689469"
-#> [1] "4 0.528866574866697"
-#> [1] "5 0.723371451022103"
-#> [1] "6 0.0739157765638083"
-#> [1] "7 0.172043942380697"
-#> [1] "8 0.722174133174121"
-#> [1] "9 0.831477720988914"
+#> [1] "1 0.120552910491824"
+#> [1] "2 0.0693008163943887"
+#> [1] "3 0.961079830070958"
+#> [1] "4 0.939886966953054"
+#> [1] "5 0.660558034898713"
+#> [1] "6 0.132379427785054"
+#> [1] "7 0.685275703668594"
+#> [1] "8 0.747606927296147"
+#> [1] "9 0.277189074549824"
 ```
 
 For solving with a loop this basic knowledge can help to increase the pace of the algorithm.
@@ -92,9 +94,9 @@ For solving with a loop this basic knowledge can help to increase the pace of th
 
 rm(list=ls())
 gc()
-#>           used (Mb) gc trigger  (Mb) max used (Mb)
-#> Ncells  628290 33.6    1207352  64.5  1207352 64.5
-#> Vcells 1145456  8.8   14906148 113.8 11282681 86.1
+#>          used (Mb) gc trigger (Mb) max used (Mb)
+#> Ncells 555917 29.7     940480 50.3   750400 40.1
+#> Vcells 950110  7.3   12931836 98.7 11082749 84.6
 
 row=100
 col=100
@@ -119,7 +121,7 @@ system.time({
     }
 })['elapsed']
 #> elapsed 
-#>   48.46
+#>   34.74
 
 
 
@@ -136,7 +138,7 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>   44.78
+#>   32.49
 
 
 sum(CC-CR)
@@ -152,19 +154,22 @@ There are several packages for parallelizing:
 -   snow
 -   multicore
 
-Some of those packages are require by the others, so lets start with **doParallel**. Once we open this package in our session it will require **parallel** that will automatically open the rest.
+Some of those packages are required by the others, so lets start with **doParallel**. Once we open this package in our session it will require **parallel** that will automatically open the rest.
 
 The easiest way to parallelize the loop above is using the package **foreach** in conjunction with **doParallel**. For this it's necessary to call the *registerParallel* function.
 
 ``` r
 
 library(doParallel)
+#> Warning: package 'doParallel' was built under R version 3.4.4
 #> Loading required package: foreach
+#> Warning: package 'foreach' was built under R version 3.4.4
 #> Loading required package: iterators
+#> Warning: package 'iterators' was built under R version 3.4.4
 #> Loading required package: parallel
 
 (no_cores<-detectCores()-1)
-#> [1] 35
+#> [1] 7
 
 registerDoParallel()
 
@@ -184,14 +189,14 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>    2.93
+#>    3.94
 
 
 sum(CC-C)
 #> [1] 0
 ```
 
-Anytime we initialize the cores using **registerDoParallel** there is no need to close the connections, they will be stopped automatically once the program detects they aren't used anymore. Given that we have to
+Anytime we initialize the cores using **registerDoParallel** there is no need to close the connections, they will be stopped automatically once the program detects they aren't used anymore.
 
 ### Life is always a tradeoff
 
@@ -222,7 +227,7 @@ for(h in 1:no_cores){
 
 <img src="Github_files/figure-markdown_github/Time_graph.png" width="500" />
 
-Given that we are sharing memory, i.e., in every iteration we are calling *B*, the way *R* in Windows handles this is making the different cores wait until the others finish using *B*. Therefore, more cores not always means less time.
+Given that we are sharing memory, i.e., in every iteration we are calling *B*, the way *R* in Windows handles this is making the different cores wait until the others finish using *B*. Therefore, more cores doesn't always mean less processing time.
 
 Divide and Conquer
 ------------------
@@ -277,7 +282,7 @@ sum(CC-valor)
 2. Submitting R scripts into the cluster
 ========================================
 
-From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the share variables.
+From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the shared variables.
 
 The basics
 ----------
@@ -431,7 +436,7 @@ Some extra parameters for this queue are:
 
 ### The **bsub** command: Submitting jobs to the cluster
 
-**bsub** submits information regarding your job to the batch system. Instead of writing a large *bsub* command in the terminal, we will create a shell file specifying all the *bsub* requiremnts.
+**bsub** submits information regarding your job to the batch system. Instead of writing a large *bsub* command in the terminal, we will create a shell file specifying all the *bsub* requirements.
 
 The shell files can be created through either the linux terminal using the editor *nano* or Notepad++ in Windows.
 

@@ -1,7 +1,7 @@
 ---
 title: "Hands-on lab (Second Part)"
 author: "Sofia Gil"
-date: "December 17, 2018"
+date: "January 15, 2019"
 output: 
   github_document:
     toc: true
@@ -29,7 +29,7 @@ library(ggplot2)
 
 ## The basics
 
-It is well known that when we are using $R$ we always have to avoid $for$ loops. Due to the calls that $R$ does to $C$ functions, therefore it is better to vectorice everything.
+It is well known that when we are using $R$ we always have to avoid $for$ loops. Due to the calls that $R$ does to $C$ functions, therefore it is better to vectorize everything.
 
 ```{r}
 
@@ -65,7 +65,7 @@ Imagine we want to do the Kronecker Product of $A \otimes B$, that means:
 #### Easy way
 
 
-**Memory access:** It is important to know the way $R$ stores matrices, i.e., by row or by column. In the specific case of $R$ all the matrices are store by column, given that $R$ is an statistical software where the columns almost always represent variable names. This is crucial due to each variable created in R has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that this addresses are consecutive, it will always decreases the memory access time if we call them in a consecutive way. 
+**Memory access:** It is important to know the way $R$ stores matrices, i.e., by row or by column. In the specific case of $R$ all the matrices are stored by column, given that $R$ is a statistical software where the columns almost always represent variable names. This is crucial since each variable created in R has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that these addresses are consecutive, it will always decreases the memory access time if we call them in a consecutive way. 
 
 ![](Github_files/figure-markdown_github/ColumnOriented.png){width=300px}
 
@@ -140,7 +140,7 @@ There are several packages for parallelizing:
 * snow
 * multicore
 
-Some of those packages are require by the others, so lets start with **doParallel**. Once we open this package in our session it will require **parallel** that will automatically open the rest.
+Some of those packages are required by the others, so lets start with **doParallel**. Once we open this package in our session it will require **parallel** that will automatically open the rest.
 
 The easiest way to parallelize the loop above is using the package **foreach** in conjunction with **doParallel**. For this it's necessary to call the *registerParallel* function.
 
@@ -224,7 +224,7 @@ ggsave('Time_graph.png')
 
 ![](Github_files/figure-markdown_github/Time_graph.png){width=500px}
 
-Given that we are sharing memory, i.e., in every iteration we are calling $B$, the way $R$ in Windows handles this is making the different cores wait until the others finish using $B$. Therefore, more cores not always means less time.
+Given that we are sharing memory, i.e., in every iteration we are calling $B$, the way $R$ in Windows handles this is making the different cores wait until the others finish using $B$. Therefore, more cores doesn't always mean less processing time.
 
 
 
@@ -294,7 +294,7 @@ ggsave('ChunksTimes.png')
 
 # 2. Submitting R scripts into the cluster
 
-From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the share variables.
+From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the shared variables.
 
 
 ## The basics
@@ -550,7 +550,7 @@ Some extra parameters for this queue are:
 
 ### The **bsub** command: Submitting jobs to the cluster
 
-**bsub** submits information regarding your job to the batch system. Instead of writing a large *bsub* command in the terminal, we will create a shell file specifying all the *bsub* requiremnts.
+**bsub** submits information regarding your job to the batch system. Instead of writing a large *bsub* command in the terminal, we will create a shell file specifying all the *bsub* requirements.
 
 The shell files can be created through either the linux terminal using the editor *nano* or Notepad++ in Windows. 
 
