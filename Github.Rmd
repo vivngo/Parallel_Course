@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 ```
 
-# 1. First steps for parallelizing in R
+# First steps for parallelizing in R
 
 ```{r,echo=FALSE}
 library(ggplot2)
@@ -292,7 +292,7 @@ ggsave('ChunksTimes.png')
 ```
 ![](Github_files/figure-markdown_github/ChunksTimes.png){width=500px}
 
-# 2. Submitting R scripts into the cluster
+# Submitting R scripts into the cluster
 
 From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the shared variables.
 

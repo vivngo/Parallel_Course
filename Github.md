@@ -3,10 +3,10 @@ Hands-on lab (Second Part)
 Sofia Gil
 January 15, 2019
 
--   [1. First steps for parallelizing in R](#first-steps-for-parallelizing-in-r)
+-   [First steps for parallelizing in R](#first-steps-for-parallelizing-in-r)
     -   [The basics](#the-basics)
     -   [Divide and Conquer](#divide-and-conquer)
--   [2. Submitting R scripts into the cluster](#submitting-r-scripts-into-the-cluster)
+-   [Submitting R scripts into the cluster](#submitting-r-scripts-into-the-cluster)
     -   [The basics](#the-basics-1)
     -   [How does the cluster work?](#how-does-the-cluster-work)
     -   [Non-parallel jobs](#non-parallel-jobs)
@@ -14,8 +14,8 @@ January 15, 2019
     -   [Other important LSF commands](#other-important-lsf-commands)
 -   [References](#references)
 
-1. First steps for parallelizing in R
-=====================================
+First steps for parallelizing in R
+==================================
 
     #> Warning: package 'ggplot2' was built under R version 3.4.4
 
@@ -29,8 +29,8 @@ It is well known that when we are using *R* we always have to avoid *f**o**r* lo
 rm(list=ls())
 gc()
 #>          used (Mb) gc trigger (Mb) max used (Mb)
-#> Ncells 554386 29.7     940480 50.3   750400 40.1
-#> Vcells 945483  7.3    1650153 12.6  1210626  9.3
+#> Ncells 554602 29.7     940480 50.3   750400 40.1
+#> Vcells 946036  7.3    1650153 12.6  1210617  9.3
 
 len<-5000000
 
@@ -45,11 +45,11 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>    0.31
+#>    0.28
 
 system.time({c2<-a%*%b})['elapsed']
 #> elapsed 
-#>    0.06
+#>    0.03
 ```
 
 But... what should we do when the problem we are facing needs a loop? There are two options:
@@ -70,22 +70,22 @@ Imagine we want to do the Kronecker Product of *A* ⊗ *B*, that means:
 ``` r
 
 (A<-matrix(runif(9),nrow = 3,ncol = 3))
-#>            [,1]      [,2]      [,3]
-#> [1,] 0.12055291 0.9398870 0.6852757
-#> [2,] 0.06930082 0.6605580 0.7476069
-#> [3,] 0.96107983 0.1323794 0.2771891
+#>           [,1]      [,2]       [,3]
+#> [1,] 0.7963638 0.8331277 0.50318325
+#> [2,] 0.3668126 0.2851823 0.08384415
+#> [3,] 0.3487096 0.8521909 0.23649574
 
 for(i in 1:length(A))
   print(paste(i,A[i]))
-#> [1] "1 0.120552910491824"
-#> [1] "2 0.0693008163943887"
-#> [1] "3 0.961079830070958"
-#> [1] "4 0.939886966953054"
-#> [1] "5 0.660558034898713"
-#> [1] "6 0.132379427785054"
-#> [1] "7 0.685275703668594"
-#> [1] "8 0.747606927296147"
-#> [1] "9 0.277189074549824"
+#> [1] "1 0.796363758621737"
+#> [1] "2 0.36681256396696"
+#> [1] "3 0.348709580954164"
+#> [1] "4 0.833127682562917"
+#> [1] "5 0.285182266263291"
+#> [1] "6 0.852190928533673"
+#> [1] "7 0.50318324775435"
+#> [1] "8 0.0838441476225853"
+#> [1] "9 0.236495736753568"
 ```
 
 For solving with a loop this basic knowledge can help to increase the pace of the algorithm.
@@ -95,8 +95,8 @@ For solving with a loop this basic knowledge can help to increase the pace of th
 rm(list=ls())
 gc()
 #>          used (Mb) gc trigger (Mb) max used (Mb)
-#> Ncells 555917 29.7     940480 50.3   750400 40.1
-#> Vcells 950110  7.3   12931836 98.7 11082749 84.6
+#> Ncells 556133 29.8     940480 50.3   750400 40.1
+#> Vcells 950663  7.3   12932472 98.7 11083292 84.6
 
 row=100
 col=100
@@ -121,7 +121,7 @@ system.time({
     }
 })['elapsed']
 #> elapsed 
-#>   34.74
+#>   32.02
 
 
 
@@ -138,7 +138,7 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>   32.49
+#>   31.92
 
 
 sum(CC-CR)
@@ -189,7 +189,7 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>    3.94
+#>    3.72
 
 
 sum(CC-C)
@@ -279,8 +279,8 @@ sum(CC-valor)
 
 <img src="Github_files/figure-markdown_github/ChunksTimes.png" width="500" />
 
-2. Submitting R scripts into the cluster
-========================================
+Submitting R scripts into the cluster
+=====================================
 
 From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the shared variables.
 
