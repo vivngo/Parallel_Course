@@ -17,8 +17,6 @@ January 15, 2019
 First steps for parallelizing in R
 ==================================
 
-    #> Warning: package 'ggplot2' was built under R version 3.4.4
-
 The basics
 ----------
 
@@ -29,8 +27,8 @@ It is well known that when we are using *R* we always have to avoid *f**o**r* lo
 rm(list=ls())
 gc()
 #>          used (Mb) gc trigger (Mb) max used (Mb)
-#> Ncells 554602 29.7     940480 50.3   750400 40.1
-#> Vcells 946036  7.3    1650153 12.6  1210617  9.3
+#> Ncells 553917 29.6     940480 50.3   750400 40.1
+#> Vcells 945774  7.3    1650153 12.6  1203988  9.2
 
 len<-5000000
 
@@ -49,7 +47,7 @@ system.time({
 
 system.time({c2<-a%*%b})['elapsed']
 #> elapsed 
-#>    0.03
+#>    0.04
 ```
 
 But... what should we do when the problem we are facing needs a loop? There are two options:
@@ -70,22 +68,22 @@ Imagine we want to do the Kronecker Product of *A* ⊗ *B*, that means:
 ``` r
 
 (A<-matrix(runif(9),nrow = 3,ncol = 3))
-#>           [,1]      [,2]       [,3]
-#> [1,] 0.7963638 0.8331277 0.50318325
-#> [2,] 0.3668126 0.2851823 0.08384415
-#> [3,] 0.3487096 0.8521909 0.23649574
+#>           [,1]      [,2]      [,3]
+#> [1,] 0.4809838 0.4209527 0.5386734
+#> [2,] 0.1871779 0.6487687 0.2398545
+#> [3,] 0.7857373 0.2676853 0.1332319
 
 for(i in 1:length(A))
   print(paste(i,A[i]))
-#> [1] "1 0.796363758621737"
-#> [1] "2 0.36681256396696"
-#> [1] "3 0.348709580954164"
-#> [1] "4 0.833127682562917"
-#> [1] "5 0.285182266263291"
-#> [1] "6 0.852190928533673"
-#> [1] "7 0.50318324775435"
-#> [1] "8 0.0838441476225853"
-#> [1] "9 0.236495736753568"
+#> [1] "1 0.48098376346752"
+#> [1] "2 0.187177889514714"
+#> [1] "3 0.785737308906391"
+#> [1] "4 0.420952731743455"
+#> [1] "5 0.648768732557073"
+#> [1] "6 0.267685335595161"
+#> [1] "7 0.538673399714753"
+#> [1] "8 0.239854503422976"
+#> [1] "9 0.13323193253018"
 ```
 
 For solving with a loop this basic knowledge can help to increase the pace of the algorithm.
@@ -95,8 +93,8 @@ For solving with a loop this basic knowledge can help to increase the pace of th
 rm(list=ls())
 gc()
 #>          used (Mb) gc trigger (Mb) max used (Mb)
-#> Ncells 556133 29.8     940480 50.3   750400 40.1
-#> Vcells 950663  7.3   12932472 98.7 11083292 84.6
+#> Ncells 555536 29.7     940480 50.3   750400 40.1
+#> Vcells 950416  7.3   12932172 98.7 11083794 84.6
 
 row=100
 col=100
@@ -121,7 +119,7 @@ system.time({
     }
 })['elapsed']
 #> elapsed 
-#>   32.02
+#>   32.09
 
 
 
@@ -138,7 +136,7 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>   31.92
+#>   31.72
 
 
 sum(CC-CR)
@@ -189,7 +187,7 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>    3.72
+#>    3.81
 
 
 sum(CC-C)

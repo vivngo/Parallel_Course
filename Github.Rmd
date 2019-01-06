@@ -22,7 +22,7 @@ knitr::opts_chunk$set(
 
 # First steps for parallelizing in R
 
-```{r,echo=FALSE}
+```{r,echo=FALSE, warning=FALSE}
 library(ggplot2)
 ```
 
