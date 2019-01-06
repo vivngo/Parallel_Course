@@ -5,7 +5,7 @@ December 17, 2018
 
 -   [1. First steps for parallelizing in R](#first-steps-for-parallelizing-in-r)
     -   [The basics](#the-basics)
-    -   [Divide and Conquer - All Possible Regressions](#divide-and-conquer---all-possible-regressions)
+    -   [Divide and Conquer](#divide-and-conquer)
 -   [2. Submitting R scripts into the cluster](#submitting-r-scripts-into-the-cluster)
     -   [The basics](#the-basics-1)
     -   [How does the cluster work?](#how-does-the-cluster-work)
@@ -27,8 +27,8 @@ It is well known that when we are using *R* we always have to avoid *f**o**r* lo
 rm(list=ls())
 gc()
 #>           used (Mb) gc trigger (Mb) max used (Mb)
-#> Ncells  625705 33.5    1207875 64.6  1207875 64.6
-#> Vcells 1137920  8.7    8388608 64.0  1662691 12.7
+#> Ncells  625975 33.5    1207352 64.5  1207352 64.5
+#> Vcells 1138636  8.7    8388608 64.0  1664277 12.7
 
 len<-5000000
 
@@ -43,11 +43,11 @@ system.time({
   }
 })['elapsed']
 #> elapsed 
-#>    0.43
+#>    0.39
 
 system.time({c2<-a%*%b})['elapsed']
 #> elapsed 
-#>    0.03
+#>    0.02
 ```
 
 But... what should we do when the problem we are facing needs a loop? There are two options:
@@ -68,22 +68,22 @@ Imagine we want to do the Kronecker Product of *A* ⊗ *B*, that means:
 ``` r
 
 (A<-matrix(runif(9),nrow = 3,ncol = 3))
-#>            [,1]       [,2]      [,3]
-#> [1,] 0.05884223 0.94374442 0.7751198
-#> [2,] 0.61457612 0.19139907 0.6573736
-#> [3,] 0.92257634 0.08701266 0.6559999
+#>           [,1]       [,2]      [,3]
+#> [1,] 0.4734223 0.52886657 0.1720439
+#> [2,] 0.1350168 0.72337145 0.7221741
+#> [3,] 0.2189953 0.07391578 0.8314777
 
 for(i in 1:length(A))
   print(paste(i,A[i]))
-#> [1] "1 0.0588422324508429"
-#> [1] "2 0.614576119463891"
-#> [1] "3 0.922576343407854"
-#> [1] "4 0.943744422169402"
-#> [1] "5 0.191399068571627"
-#> [1] "6 0.0870126641821116"
-#> [1] "7 0.775119769386947"
-#> [1] "8 0.657373580848798"
-#> [1] "9 0.655999914743006"
+#> [1] "1 0.47342227678746"
+#> [1] "2 0.135016770102084"
+#> [1] "3 0.218995268689469"
+#> [1] "4 0.528866574866697"
+#> [1] "5 0.723371451022103"
+#> [1] "6 0.0739157765638083"
+#> [1] "7 0.172043942380697"
+#> [1] "8 0.722174133174121"
+#> [1] "9 0.831477720988914"
 ```
 
 For solving with a loop this basic knowledge can help to increase the pace of the algorithm.
@@ -93,8 +93,8 @@ For solving with a loop this basic knowledge can help to increase the pace of th
 rm(list=ls())
 gc()
 #>           used (Mb) gc trigger  (Mb) max used (Mb)
-#> Ncells  627979 33.6    1207875  64.6  1207875 64.6
-#> Vcells 1144334  8.8   14905472 113.8 11281286 86.1
+#> Ncells  628290 33.6    1207352  64.5  1207352 64.5
+#> Vcells 1145456  8.8   14906148 113.8 11282681 86.1
 
 row=100
 col=100
@@ -102,32 +102,42 @@ col=100
 A<<-matrix(runif(row*col),nrow = row,ncol = col)
 B<<-matrix(runif(row*col),nrow = row,ncol = col)
 
-CR<-matrix(0,nrow = row^2,ncol = col^2)
-CC<-matrix(0,nrow = row^2,ncol = col^2)
+CR<-matrix(A,nrow = row^2,ncol = col^2)
+CC<-matrix(A,nrow = row^2,ncol = col^2)
 
 
-### By row
+### By row 
 system.time({
-  for (i in 1:row){
-    for(j in 1:col){
-      CR[((i-1)*row+1):(i*row),((j-1)*col+1):(j*col)]<-A[row*(j-1)+i]*B
+  for (i in 1:row^2){
+    IB=(i-1)%%row+1
+    IA=floor((i-1)/row+1)
+      for(j in 1:col^2){
+        JB=(j-1)%%col+1
+        JA=floor((j-1)/col+1)
+        CR[i,j]<-A[IA,JA]*B[IB,JB]
+      }
+    }
+})['elapsed']
+#> elapsed 
+#>   48.46
+
+
+
+### By column 
+system.time({
+  for(j in 1:col^2){
+    JB=(j-1)%%col+1
+    JA=floor((j-1)/col+1)
+    for (i in 1:row^2){
+      IB=(i-1)%%row+1
+      IA=floor((i-1)/row+1)
+      CC[i,j]<-A[IA,JA]*B[IB,JB]
     }
   }
 })['elapsed']
 #> elapsed 
-#>    4.79
+#>   44.78
 
-
-### By column
-system.time({
-  for(j in 1:col){
-    for (i in 1:row){
-      CC[((i-1)*row+1):(i*row),((j-1)*col+1):(j*col)]<-A[row*(j-1)+i]*B
-    }
-  }
-})['elapsed']
-#> elapsed 
-#>    0.78
 
 sum(CC-CR)
 #> [1] 0
@@ -149,15 +159,12 @@ The easiest way to parallelize the loop above is using the package **foreach** i
 ``` r
 
 library(doParallel)
-#> Warning: package 'doParallel' was built under R version 3.5.2
 #> Loading required package: foreach
-#> Warning: package 'foreach' was built under R version 3.5.2
 #> Loading required package: iterators
-#> Warning: package 'iterators' was built under R version 3.5.2
 #> Loading required package: parallel
 
 (no_cores<-detectCores()-1)
-#> [1] 3
+#> [1] 35
 
 registerDoParallel()
 
@@ -170,20 +177,21 @@ Now we proceed to parallelize:
 ``` r
 
 system.time({
-  C<-foreach(A2=A,.combine = 'cbind',.packages = c('foreach'))%dopar%{
+  C<-foreach(A2=A,.combine = 'cbind',.packages = 'foreach')%dopar%{
         foreach(i=1:length(A2),.combine = 'rbind')%do%{
             A2[i]*B
         }
-      }
+  }
 })['elapsed']
 #> elapsed 
-#>    4.12
+#>    2.93
+
 
 sum(CC-C)
 #> [1] 0
 ```
 
-Anytime we initialize the cores using **registerDoParallel** there is no need to close the connections, they will be stopped automatically once the program detects they aren't used anymore.
+Anytime we initialize the cores using **registerDoParallel** there is no need to close the connections, they will be stopped automatically once the program detects they aren't used anymore. Given that we have to
 
 ### Life is always a tradeoff
 
@@ -191,8 +199,8 @@ You might be wondering why we are not using more than 3 cores. Let's do it!
 
 First, we need to introduce some new functions:
 
--   **makeCluster**: this function will initialize all the cores or clusters that we require.
--   **stopCluster**: this function will stop and release the cores that we have initialized.
+-   **makeCluster**: initializes all the cores or clusters that we require.
+-   **stopCluster**: stops and releases the cores that we have initialized.
 
 ``` r
 
@@ -202,11 +210,11 @@ for(h in 1:no_cores){
   cls<-makeCluster(h)
   registerDoParallel(cls)
   Times[h]<-system.time({
-      foreach(A2=A,.combine = 'cbind',.packages = c('foreach'))%dopar%{
+      foreach(A2=A,.combine = 'cbind',.packages = 'foreach')%dopar%{
         foreach(i=1:length(A2),.combine = 'rbind')%do%{
             A2[i]*B
         }
-      }
+  }
   })['elapsed']
   stopCluster(cls)
 }
@@ -216,141 +224,60 @@ for(h in 1:no_cores){
 
 Given that we are sharing memory, i.e., in every iteration we are calling *B*, the way *R* in Windows handles this is making the different cores wait until the others finish using *B*. Therefore, more cores not always means less time.
 
-Divide and Conquer - All Possible Regressions
----------------------------------------------
+Divide and Conquer
+------------------
 
-Now that we are almost masters of the paralelization it is time to handle more complicated problems. The next example was extracted from Matloff, 2015.
-
-Suppose we have *n* observations and *p* predictor variables, we are going to use *the all possible regressions* method for selecting the variables. Therefore, we need to fit regression models to each possible subset of the *p* predictors, and choose those that return the largest *R*<sup>2</sup>.
-
-There are 2<sup>*p*</sup> possible models, this means that we are dealing with the most exhaustive computer problem.
-
-``` r
-
-# ---- General Functions ----
-# Generate all nonempty subsets of 1..p of size <=k; returns an R list,
-# one element per predictor set, in the form of a vector of indices
-genallcombs<-function(p,k){
-  allcombs<-list()
-  for(i in 1:k){
-    tmp<-combn(p,i) ####
-    allcombs<-c(allcombs,matrixtolist(tmp,rc=2))
-  }
-  return(allcombs)
-}
-
-# extracts rows (rc=1) or columns (rc=2) of a matrix, producing a list
-matrixtolist<-function(rc,m){
-  if(rc==1){
-    Map(function(rownum) m[rownum,], 1:nrow(m))
-  }else{
-    Map(function(colnum) m[,colnum], 1:ncol(m))
-  }
-}
-```
+Now we will divide the task into subtasks that will be processed by different nodes (called workers) and that at the end will be managed by a master.
 
 ``` r
 
 
-# ---- Parallel functions ----
-snowapr<-function(cls, x, y, k, reverse=FALSE, dyn=FALSE, chunksize=1){
-  require(parallel)
-  p<-ncol(x)
-  # generate predictor subsets, an R list, 1 element for each predictor subset
-  allcombs<-genallcombs(p,k)
-  ncombs<-length(allcombs)
-  clusterExport(cls, 'do1pset')
-  # set up task indices
-  tasks<-if(!reverse)
-    seq(1, ncombs, chunksize) else
-      seq(ncombs, 1, -chunksize)
-  if(!dyn){
-    out<-clusterApply(cls, tasks, dochunk, x, y, allcombs, chunksize)
-  }else{
-    out<-clusterApplyLB(cls, tasks, dochunk, x, y, allcombs, chunksize)
+library(doParallel)
+
+# Checking cores
+parallel::detectCores()
+
+
+doichunk<-function(chunk){
+  require(doParallel)
+  N=length(chunk)
+  col=ncol(B)
+  row=nrow(B)
+  MatC<-foreach(A2=A[,chunk],.combine = 'cbind',.packages = 'foreach')%dopar%{
+    foreach(i=1:length(A2),.combine = 'rbind')%do%{
+        A2[i]*B
+    }
   }
-  # each element of out consists of rows showing adj. R2 and the indices
-  # of the predictor set that produced it; combine all those vectors 
-  # into a matrix
-  Reduce(rbind,out)
+  return(MatC)
 }
 
-# Process all the predictor sets in the allcombs chunk whose
-# first index is psetsstarts
-dochunk<-function(psetsstarts, x, y, allcombs, chunksize){
-  ncombs<-length(allcombs)
-  lasttask<-min(psetsstarts+chunksize-1, ncombs)
-  t(sapply(allcombs[psetsstarts:lasttask], do1pset, x, y))
+
+ChunkKronecker<-function(cls,A,B){
+  clusterExport(cls,c('A','B'))
+  ichunks<-clusterSplit(cls,1:ncol(A)) # Split jobs
+  tots<-clusterApply(cls,ichunks,doichunk)
+  return(Reduce(cbind,tots))
 }
 
-# Find the adjusted R-squared values for the given predictor
-# set onepset; return value will be the adj R2 value, followed
-# by the predictor set indices, with 0s as filler- for
-# convenience, all vectors returned by calls to do1pset()
-# have lenght k+1; e.g. for k=4, (0.28, 1, 3, 0, 0) would
-# mean the predictor set consisting of columns 1 and 3 of x,
-# with an R2 value of 0.28
-do1pset<-function(onepset, x, y){
-  slm<-summary(lm(y~x[,onepset]))
-  n0s<-ncol(x)-length(onepset)
-  c(slm$adj.r.squared, onepset, rep(0,n0s))
+
+
+Tiempos<-rep(0,30)
+
+for(i in 1:30){
+  cls<-makeCluster(i)
+  Tiempos[i]<-system.time(valor<-ChunkKronecker(cls,A,B))['elapsed']
+  stopCluster(cls)
 }
+
+sum(CC-valor)
 ```
 
-``` r
-
-# Applying Algorithm
-n=1000
-p=8
-k=6
-x<<-matrix(rnorm(n*p),ncol=p)
-y<<-x%*%c(rep(0.5,p))+rnorm(n)
-
-ncor<-35
-
-times<-data.frame(CORES=rep(1:ncor,each=ncor))
-times$CHUNKsize<-rep(1:ncor,times=ncor)
-times$TIME<-rep(0,nrow(times))
-
-for(i in 1:nrow(times)){
-    cls<-makeCluster(times$CORES[i])
-    times$TIME[i]=(system.time(Data<-snowapr(cls,x,y,k,
-                                  reverse=FALSE,dyn=TRUE,chunksize=times$CHUNKsize[i])))['elapsed']
-    stopCluster(cls)
-}
-```
-
-|         |  CORES|  CHUNKsize|    TIME|
-|---------|------:|----------:|-------:|
-| Minimum |     18|         19|   0.173|
-| Maximum |      1|          1|  10.315|
-
-<img src="Github_files/figure-markdown_github/TimesPlot.png" width="500" />
+<img src="Github_files/figure-markdown_github/ChunksTimes.png" width="500" />
 
 2. Submitting R scripts into the cluster
 ========================================
 
 From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the share variables.
-
-So, lets check what happens if instead of **makeCluster** we use **makeForkCluster** (attention, this function is only available for Linux) for the Kronecker product.
-
-``` r
-
-Times<-rep(0,no_cores)
-
-for(h in 1:no_cores){
-  cls<-makeForkCluster(h)
-  registerDoParallel(cls)
-  Times[h]<-system.time({
-      foreach(A2=A,.combine = 'cbind',.packages = c('doParallel'))%dopar%{
-        foreach(i=1:length(A2),.combine = 'rbind')%do%{
-            A2[i]*B
-        }
-      }
-  })['elapsed']
-  stopCluster(cls)
-}
-```
 
 The basics
 ----------
@@ -376,11 +303,78 @@ getDoParWorkers()
 q()
 ```
 
+Lets check what happens if instead of **makeCluster** we use **makeForkCluster** (attention, this function is only available for Linux) for the Kronecker product.
+
+``` r
+
+
+library(doParallel)
+
+(no_cores<-detectCores()-1)
+
+
+#### Normal ####
+
+TimesN<-rep(0,no_cores)
+
+for(h in 1:no_cores){
+  cls<-makeForkCluster(h)
+  registerDoParallel(cls)
+  TimesN[h]<-system.time({
+      foreach(A2=A,.combine = 'cbind',.packages = 'foreach')%dopar%{
+        foreach(i=1:length(A2),.combine = 'rbind')%do%{
+            A2[i]*B
+        }
+  }
+  })['elapsed']
+  stopCluster(cls)
+}
+
+
+#### Master - Workers ####
+
+doichunk<-function(chunk){
+  require(doParallel)
+  N=length(chunk)
+  col=ncol(B)
+  row=nrow(B)
+  MatC<-foreach(A2=A[,chunk],.combine = 'cbind',.packages = 'foreach')%dopar%{
+    foreach(i=1:length(A2),.combine = 'rbind')%do%{
+        A2[i]*B
+    }
+  }
+  return(MatC)
+}
+
+
+ChunkKronecker<-function(cls,A,B){
+  clusterExport(cls,c('A','B'))
+  ichunks<-clusterSplit(cls,1:ncol(A)) # Split jobs
+  tots<-clusterApply(cls,ichunks,doichunk)
+  return(Reduce(cbind,tots))
+}
+
+
+
+TimesC<-rep(0,no_cores)
+
+for(i in 1:no_cores){
+  cls<-makeForkCluster(i)
+  TimesC[i]<-system.time(valor<-ChunkKronecker(cls,A,B))['elapsed']
+  stopCluster(cls)
+}
+
+
+Times<-data.frame(NoCores=1:no_cores,Normal=TimesN, Workers=TimesC)
+
+write.csv(Times,'TimesFork.csv')
+```
+
 For running and R code in terminal, without opening *R*, just write **Rscript** followed by the name of your *R* file.
 
 ``` r
 
-> Rscript DivideAndConquer.R
+> Rscript KroneckerLinux.R
 ```
 
 How does the cluster work?
@@ -498,7 +492,7 @@ So, for submiting our job the shell file would look like the next one:
 
 ``` r
 
-> nano DivideAndConquer.sh
+> nano KroneckerLinux.sh
 
 ------------------------
 #!/bin/sh 
@@ -506,20 +500,23 @@ So, for submiting our job the shell file would look like the next one:
 #BSUB -u gil@demogr.mpg.de
 #BSUB -q mpi 
 #BSUB -W 00:30
-#BSUB -o DivideAndConquer.%J.txt 
 #BSUB -n 8 
 #BSUB -a openmp 
 #BSUB -R span[hosts=1] 
  
-R CMD BATCH DivideAndConquer.R
+R CMD BATCH KroneckerLinux.R
 --------------------------
 ```
 
 ``` r
-> bsub < DivideAndConquer.sh
+> bsub < KroneckerLinux.sh
 ```
 
-<img src="Github_files/figure-markdown_github/Submit.PNG" width="800" />
+<img src="Github_files/figure-markdown_github/SUBMIT.PNG" width="800" />
+
+<img src="Github_files/figure-markdown_github/email.PNG" width="500" />
+
+<img src="Github_files/figure-markdown_github/ForkVSnoFork.png" width="500" />
 
 Other important LSF commands
 ----------------------------
@@ -528,11 +525,11 @@ Other important LSF commands
 
 While not having a job slot:
 
-<img src="Github_files/figure-markdown_github/WaitingHost.PNG" width="800" />
+<img src="Github_files/figure-markdown_github/WAITING.PNG" width="800" />
 
 Once having a job slot:
 
-<img src="Github_files/figure-markdown_github/QueueInHost.PNG" width="800" />
+<img src="Github_files/figure-markdown_github/WORKING.PNG" width="800" />
 
 -   bhist: lists older jobs.
 -   lsload: status of cluster nodes.
