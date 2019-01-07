@@ -20,7 +20,7 @@ First steps for parallelizing in R
 The basics
 ----------
 
-It is well known that when we are using *R* we always have to avoid *f**o**r* loops. Due to the calls that *R* does to *C* functions, therefore it is better to vectorize everything.
+It is well-known that when we are using *R* we always have to avoid **for** loops. Due to the calls that *R* makes to *C* functions, it is better to vectorize everything.
 
 ``` r
 
@@ -61,7 +61,7 @@ Imagine we want to do the Kronecker Product of *A* ⊗ *B*, that means:
 
 #### Easy way
 
-**Memory access:** It is important to know the way *R* stores matrices, i.e., by row or by column. In the specific case of *R* all the matrices are stored by column, given that *R* is a statistical software where the columns almost always represent variable names. This is crucial since each variable created in R has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that these addresses are consecutive, it will always decreases the memory access time if we call them in a consecutive way.
+**Memory access:** It is important to know how *R* stores matrices, i.e., by row or by column. In the specific case of *R*, all matrices are stored by column, given that *R* is a statistical software where the columns almost always represent variable names. This is crucial since each variable created in *R* has an ID number, so the compiler or the interpreter will assign specific addresses in memory at which every element of the variables (e.g. vector, matrices, data frames, lists,...) will be stored. Given that these addresses are consecutive, it will always decrease memory access time if we call them in a consecutive way.
 
 <img src="Github_files/figure-markdown_github/ColumnOriented.png" width="300" />
 
@@ -86,7 +86,7 @@ for(i in 1:length(A))
 #> [1] "9 0.13323193253018"
 ```
 
-For solving with a loop this basic knowledge can help to increase the pace of the algorithm.
+For solving with a loop, this basic knowledge can help increase the speed of the algorithm.
 
 ``` r
 
@@ -152,9 +152,9 @@ There are several packages for parallelizing:
 -   snow
 -   multicore
 
-Some of those packages are required by the others, so lets start with **doParallel**. Once we open this package in our session it will require **parallel** that will automatically open the rest.
+Some of those packages are required by the others, so let's start with **doParallel**. Once we open this package in our session, it will require **parallel**, which will automatically open the rest.
 
-The easiest way to parallelize the loop above is using the package **foreach** in conjunction with **doParallel**. For this it's necessary to call the *registerParallel* function.
+The easiest way to parallelize the loop above is using the package **foreach** in conjunction with **doParallel**. For this, it's necessary to call the *registerParallel* function.
 
 ``` r
 
@@ -194,7 +194,7 @@ sum(CC-C)
 #> [1] 0
 ```
 
-Anytime we initialize the cores using **registerDoParallel** there is no need to close the connections, they will be stopped automatically once the program detects they aren't used anymore.
+Anytime we initialize the cores using **registerDoParallel**, there is no need to close the connections; they will be stopped automatically once the program detects they aren't being used anymore.
 
 ### Life is always a tradeoff
 
@@ -225,7 +225,7 @@ for(h in 1:no_cores){
 
 <img src="Github_files/figure-markdown_github/Time_graph.png" width="500" />
 
-Given that we are sharing memory, i.e., in every iteration we are calling *B*, the way *R* in Windows handles this is making the different cores wait until the others finish using *B*. Therefore, more cores doesn't always mean less processing time.
+Given that we are sharing memory, i.e., in every iteration we are calling *B*, the way *R* in Windows handles this is by making the different cores wait until the others finish using *B*. Therefore, more cores doesn't always mean less processing time.
 
 Divide and Conquer
 ------------------
@@ -280,7 +280,7 @@ sum(CC-valor)
 Submitting R scripts into the cluster
 =====================================
 
-From now on the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also in their architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the shared variables.
+From now on, the operating system will be Linux. Linux and Windows have significant differences from each other, not only in the graphic user interface, but also on the architectural level. One of the main differences is that Windows doesn't fork and Linux does. That means that Linux make copies of the needed variables in all the cores, instead of forcing the cores to queue and wait for using the shared variables.
 
 The basics
 ----------
@@ -306,7 +306,7 @@ getDoParWorkers()
 q()
 ```
 
-Lets check what happens if instead of **makeCluster** we use **makeForkCluster** (attention, this function is only available for Linux) for the Kronecker product.
+Let's check what happens if instead of **makeCluster** we use **makeForkCluster** (attention: this function is only available for Linux) for the Kronecker product.
 
 ``` r
 
@@ -373,7 +373,7 @@ Times<-data.frame(NoCores=1:no_cores,Normal=TimesN, Workers=TimesC)
 write.csv(Times,'TimesFork.csv')
 ```
 
-For running and R code in terminal, without opening *R*, just write **Rscript** followed by the name of your *R* file.
+For running any R code in the terminal, without opening *R*, just write **Rscript** followed by the name of your *R* file.
 
 ``` r
 
@@ -383,7 +383,7 @@ For running and R code in terminal, without opening *R*, just write **Rscript** 
 How does the cluster work?
 --------------------------
 
-For submitting jobs to the cluster it is necessary to create a **shell file** using a **batch system** through LSF commands. So, the GWDG cluster is operated by the LSF platform, which is operated by shell commands on the frontends. The **frontends** are special nodes (gwdu101, gwudu102, and gwdu103) provided to interact with the cluster via shell commands.
+For submitting jobs to the cluster, it is necessary to create a **shell file** using a **batch system** through LSF commands. So, the GWDG cluster is operated by the LSF platform, which is operated by shell commands on the frontends. The **frontends** are special nodes (gwdu101, gwudu102, and gwdu103) provided to interact with the cluster via shell commands.
 
 The batch system distributes the processes across job slots, and matches the job's requirements to the capabilities of the job slots. Once sufficient suitable job slots are found, the job is started. LSF considers jobs to be started in the order of their priority.
 
@@ -391,33 +391,33 @@ It is also necessary to know how the cluster is structured:
 
 <img src="Github_files/figure-markdown_github/GWDGarchitecture.PNG" alt="source: https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs" width="100%" />
 <p class="caption">
-source: <https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs>
+source: https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs
 </p>
 
 ### Basic options of **disk space**
 
--   /scratch: this is the shared scratch space, available on *gwda, gwdc*, and *gwdd* nodes and on the frontends *gwdu101* and *gwdu102*. For being sure of having a node with access to shared */scratch* the command **-R scratch** must be written in the shell file.
+-   /scratch: this is the shared scratch space, available on *gwda, gwdc*, and *gwdd* nodes and on the frontends *gwdu101* and *gwdu102*. In order to be sure of having a node with access to shared */scratch* ,the command **-R scratch** must be written in the shell file.
 
--   /scratch2: this is the shared scratch space, available on *dfa, dsu, dge*, and *dmp* nodes, and on the frontend *gwdu103*. For being sure of having a node with access to shared */scratch2* the command **-R scratch2** must be written in the shell file.
+-   /scratch2: this is the shared scratch space, available on *dfa, dsu, dge*, and *dmp* nodes, and on the frontend *gwdu103*. In order to be sure of having a node with access to shared */scratch2*, the command **-R scratch2** must be written in the shell file.
 
--   $HOME: our home directory is available everywhere, permanent, and comes with backup, but it is comparatively slow.
+-   $HOME: our home directory is available everywhere, is permanent, and comes with backup, but it is comparatively slow.
 
 ### Basic queue *mpi*
 
-**mpi** is the general purpose queue, usable for serial and SMP jobs with up to 20 tasks, but it is especially well suited for large MPI jobs. Up to 1024 cores can be used in a single MPI job, and the maximum is 48 hours. This is specified in the shell file through the command **-q mpi**.
+**mpi** is the general purpose queue, usable for serial and SMP jobs with up to 20 tasks, but it is especially well-suited for large MPI jobs. Up to 1024 cores can be used in a single MPI job, and the maximum is 48 hours. This is specified in the shell file through the command **-q mpi**.
 
 Some extra parameters for this queue are:
 
 -   -long: the maximum run time is increased to 120 hours. Job slot availability is limited, and long waiting times are expected.
 
--   -short: the maximum run time is decreased to two hours. In turn the queue has a higher base priority, but it also has limited job slot availability. That means that as long as only few jobs are submitted to the *-short* queues they will have minimal waiting times.
+-   -short: the maximum run time is decreased to two hours. In turn, the queue has a higher base priority, but it also has limited job slot availability. That means that as long as only a few jobs are submitted to the *-short* queues, they will have minimal waiting times.
 
 ### Specifying node properties with *-R*
 
 **-R** runs the job on a host that meets the specified resource requirements. Some of its basic parameters are:
 
 -   span\[hosts=1\]: this puts all processes on one host.
--   span\[ptile=&lt; x &gt;\]: *x* denotes the exact number of job slots to be used on each host. If the total process number is not divisible by *x*.
+-   span\[ptile=&lt; x &gt;\]: *x* denotes the exact number of job slots to be used on each host. If the total process number is not divisible by *x*, then the rest is submitted in the last core.
 -   scratch(2): the node must have access to *scratch(2)*.
 
 ### Last but not less important parameters
@@ -429,19 +429,19 @@ Some extra parameters for this queue are:
 -   -n: submits a parallel job and specifies the number of tasks in the job.
 -   -a: this option denotes a wrapper script required to run SMP or MPI jobs. The most important wrappers are[1]:
     -   Shared Memory (**openmp**). This is a type of parallel job that runs multiple threads or processes on a single multi-core machine. OpenMP programs are a type of shared memory parallel program.
-    -   Distributed Memory (**intelmpi**). This type of parallel job runs multiple processes over multiple processors with communication between them. This can be on a single machine but is typically thought of as going across multiple machines. There are several methods of achieving this via a message passing protocol but the most common, by far, is MPI (Message Passing Interface).
-    -   Hybrid Shared/Distributed Memory (**openmpi**). This type of parallel job uses distributed memory parallelism across compute nodes, and shared memory parallelism within each compute node. There are several methods for achieving this but the most common is OpenMP/MPI.
+    -   Distributed Memory (**intelmpi**). This type of parallel job runs multiple processes over multiple processors with communication between them. This can be on a single machine, but is typically thought of as going across multiple machines. There are several methods of achieving this via a message passing protocol, but the most common, by far, is MPI (Message Passing Interface).
+    -   Hybrid Shared/Distributed Memory (**openmpi**). This type of parallel job uses distributed memory parallelism across compute nodes, and shared memory parallelism within each compute node. There are several methods for achieving this, but the most common is OpenMP/MPI.
 
 ### The **bsub** command: Submitting jobs to the cluster
 
 **bsub** submits information regarding your job to the batch system. Instead of writing a large *bsub* command in the terminal, we will create a shell file specifying all the *bsub* requirements.
 
-The shell files can be created through either the linux terminal using the editor *nano* or Notepad++ in Windows.
+The shell files can be created through either the Linux terminal using the editor *nano* or Notepad++ in Windows.
 
 Non-parallel jobs
 -----------------
 
-For creating the shell file we will use the Linux text editor **nano**.
+For creating the shell file, we will use the Linux text editor **nano**.
 
 ``` r
 
@@ -459,7 +459,7 @@ R CMD BATCH NameCode.R
 --------------------------
 ```
 
-For submiting the job the command is:
+For submiting the job, the command is:
 
 ``` r
 > bsub < NameShell.sh
@@ -491,7 +491,7 @@ R CMD BATCH NameCode.R
 > bsub < NameShell.sh
 ```
 
-So, for submiting our job the shell file would look like the next one:
+So, for submiting our job, the shell file would look like the following:
 
 ``` r
 
@@ -524,7 +524,7 @@ R CMD BATCH KroneckerLinux.R
 Other important LSF commands
 ----------------------------
 
--   bjobs: lists currents jobs.
+-   bjobs: lists current jobs.
 
 While not having a job slot:
 
